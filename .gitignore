@@ -1,0 +1,17 @@
+# Datasets
+*.txt
+!README.txt
+
+# Binarios compilados
+msa_plain
+msa_plain_int64
+cmsa_delta_gap
+cmsa_delta_pos
+cmsa_simple9_gap
+cmsa_simple9_pos
+cmsa_wavelet_tree
+
+# Artefatos de execucao
+*.o
+*.log
+tmp.sdsl
