@@ -242,7 +242,17 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    in >> ctx.dim >> ctx.nn >> ctx.n >> ctx.num_q;
+    int totalObjs, totalRefs, totalQueries;
+
+    in >> ctx.dim >> totalObjs >> totalRefs >> totalQueries;
+
+    if (SEL_OBJS > totalObjs || SEL_REFS > totalRefs || SEL_QUES > totalQueries) {
+
+        cerr << "Selecao maior que o disponivel no arquivo (objs=" << totalObjs
+            << ", refs=" << totalRefs << ", queries=" << totalQueries << ")" << endl;
+
+        return 1;
+    }
 
     ctx.nn = SEL_OBJS;
     ctx.n = SEL_REFS;
@@ -261,11 +271,14 @@ int main(int argc, char* argv[]) {
 
     double tmp;
 
-    for (int i = 0; i < ctx.dim * ctx.nn; i++) {
+    // pula a secao de objetos inteira (total do arquivo, nao apenas os selecionados),
+    // para que a secao de referencias comece sempre na mesma posicao do arquivo
+    for (long long i = 0; i < (long long)ctx.dim * totalObjs; i++) {
 
         in >> tmp;
     }
 
+    // le apenas as primeiras SEL_REFS referencias do inicio da secao
     for (int i = 0; i < (int)r.size(); i++) {
 
         in >> r[i];
@@ -281,7 +294,7 @@ int main(int argc, char* argv[]) {
 
     ifstream in2(FILE_NAME);
 
-    in2 >> ctx.dim >> ctx.nn >> ctx.n >> ctx.num_q;
+    in2 >> ctx.dim >> totalObjs >> totalRefs >> totalQueries;
 
     ctx.nn = SEL_OBJS;
     ctx.n = SEL_REFS;
@@ -313,7 +326,16 @@ int main(int argc, char* argv[]) {
         << chrono::duration_cast<chrono::milliseconds>(t2 - t1).count()
         << " ms" << endl;
 
-    for (int i = 0; i < (int)r.size(); i++) {
+    // pula o restante da secao de objetos que nao foi lido
+    for (long long i = 0; i < (long long)(totalObjs - ctx.nn) * ctx.dim; i++) {
+
+        in2 >> tmp;
+    }
+
+    // pula a secao de referencias inteira (total do arquivo, nao apenas as
+    // selecionadas), para que as queries comecem sempre na mesma posicao do
+    // arquivo, independente de SEL_OBJS e SEL_REFS
+    for (long long i = 0; i < (long long)totalRefs * ctx.dim; i++) {
 
         in2 >> tmp;
     }
