@@ -15,7 +15,7 @@
 using namespace std;
 
 // =========================================================
-// CONFIGURA��ES
+// CONFIGURA  ES
 // =========================================================
 static const int KNN = 10;
 
@@ -47,7 +47,7 @@ struct CompareMaxHeap {
 };
 
 // =========================================================
-// MEM�RIA
+// MEM RIA
 // =========================================================
 
 long getVmRSSKB() {
@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
 
     int totalObjs, totalRefs, totalQueries;
 
-    in >> ctx.dim >> totalObjs >> totalRefs >> totalQueries;
+    in >> ctx.dim >> totalRefs >> totalObjs >> totalQueries;
 
     if (SEL_OBJS > totalObjs || SEL_REFS > totalRefs || SEL_QUES > totalQueries) {
 
@@ -271,18 +271,17 @@ int main(int argc, char* argv[]) {
 
     double tmp;
 
-    // pula a secao de objetos inteira (total do arquivo, nao apenas os selecionados),
-    // para que a secao de referencias comece sempre na mesma posicao do arquivo
-    for (long long i = 0; i < (long long)ctx.dim * totalObjs; i++) {
-
-        in >> tmp;
-    }
-
     // le apenas as primeiras SEL_REFS referencias do inicio da secao
     for (int i = 0; i < (int)r.size(); i++) {
 
         in >> r[i];
     }
+
+    // pula a secao de objetos inteira (total do arquivo, nao apenas os selecionados),
+    // para que a secao de referencias comece sempre na mesma posicao do arquivo
+    //for (long long i = 0; i < (long long)ctx.dim * totalObjs; i++) {
+    //    in >> tmp;
+    //}
 
     printMemory("Apos referencias");
 
@@ -294,7 +293,7 @@ int main(int argc, char* argv[]) {
 
     ifstream in2(FILE_NAME);
 
-    in2 >> ctx.dim >> totalObjs >> totalRefs >> totalQueries;
+    in2 >> ctx.dim >> totalRefs >> totalObjs >> totalQueries;
 
     ctx.nn = SEL_OBJS;
     ctx.n = SEL_REFS;
@@ -303,6 +302,14 @@ int main(int argc, char* argv[]) {
     vector<int> msa(ctx.n * ctx.nn);
 
     auto t1 = chrono::steady_clock::now();
+
+    // pula a secao de referencias inteira (total do arquivo, nao apenas as
+    // selecionadas), para que as queries comecem sempre na mesma posicao do
+    // arquivo, independente de SEL_OBJS e SEL_REFS
+    for (long long i = 0; i < (long long)totalRefs * ctx.dim; i++) {
+
+        in2 >> tmp;
+    }
 
     vector<double> oi(ctx.dim);
 
@@ -328,14 +335,6 @@ int main(int argc, char* argv[]) {
 
     // pula o restante da secao de objetos que nao foi lido
     for (long long i = 0; i < (long long)(totalObjs - ctx.nn) * ctx.dim; i++) {
-
-        in2 >> tmp;
-    }
-
-    // pula a secao de referencias inteira (total do arquivo, nao apenas as
-    // selecionadas), para que as queries comecem sempre na mesma posicao do
-    // arquivo, independente de SEL_OBJS e SEL_REFS
-    for (long long i = 0; i < (long long)totalRefs * ctx.dim; i++) {
 
         in2 >> tmp;
     }
