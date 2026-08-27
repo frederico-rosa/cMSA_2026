@@ -106,6 +106,59 @@ int getPosition(int ref, const vector<int>& loi) {
 
 // =========================================================
 
+// Pula "count" tokens (separados por espaco/quebra de linha) do stream sem
+// converter cada um para double. O operator>> usado no resto do arquivo
+// faz parsing numerico a cada leitura, o que fica proibitivamente lento
+// quando ha bilhoes de tokens a descartar (ex.: selecionar poucos objetos
+// de um arquivo com dezenas de milhoes deles).
+void skipTokens(ifstream& in, long long count) {
+
+    if (count <= 0)
+        return;
+
+    const size_t BUF_SIZE = 1 << 20;
+    vector<char> buf(BUF_SIZE);
+
+    long long skipped = 0;
+    bool inToken = false;
+
+    while (skipped < count && in) {
+
+        in.read(buf.data(), BUF_SIZE);
+        streamsize got = in.gcount();
+
+        if (got == 0)
+            break;
+
+        for (streamsize k = 0; k < got; k++) {
+
+            char c = buf[k];
+
+            if (c == ' ' || c == '\n' || c == '\r' || c == '\t') {
+
+                if (inToken) {
+
+                    inToken = false;
+                    skipped++;
+
+                    if (skipped == count) {
+
+                        in.clear();
+                        in.seekg(-(got - k - 1), ios::cur);
+                        return;
+                    }
+                }
+
+            } else {
+
+                inToken = true;
+            }
+        }
+    }
+}
+
+// =========================================================
+
 vector<int> getOrderedList(const Context& ctx, const vector<double>& oi, const vector<double>& r) {
 
     vector<Node> loi;
@@ -250,7 +303,17 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    in >> ctx.dim >> ctx.nn >> ctx.n >> ctx.num_q;
+    int totalObjs, totalRefs, totalQueries;
+
+    in >> ctx.dim >> totalRefs >> totalObjs >> totalQueries;
+
+    if (SEL_OBJS > totalObjs || SEL_REFS > totalRefs || SEL_QUES > totalQueries) {
+
+        cerr << "Selecao maior que o disponivel no arquivo (objs=" << totalObjs
+            << ", refs=" << totalRefs << ", queries=" << totalQueries << ")" << endl;
+
+        return 1;
+    }
 
     ctx.nn = SEL_OBJS;
     ctx.n = SEL_REFS;
@@ -268,17 +331,15 @@ int main(int argc, char* argv[]) {
 
     vector<double> r(static_cast<size_t>(ctx.dim) * ctx.n);
 
-    double tmp;
-
-    for (long long i = 0; i < static_cast<long long>(ctx.dim) * ctx.nn; i++) {
-
-        in >> tmp;
-    }
-
+    // le apenas as primeiras SEL_REFS referencias do inicio da secao
     for (size_t i = 0; i < r.size(); i++) {
 
         in >> r[i];
     }
+
+    // pula a secao de objetos inteira (total do arquivo, nao apenas os selecionados),
+    // para que a secao de referencias comece sempre na mesma posicao do arquivo
+    //skipTokens(in, static_cast<long long>(ctx.dim) * totalObjs);
 
     printMemory("Apos referencias");
 
@@ -290,7 +351,7 @@ int main(int argc, char* argv[]) {
 
     ifstream in2(FILE_NAME);
 
-    in2 >> ctx.dim >> ctx.nn >> ctx.n >> ctx.num_q;
+    in2 >> ctx.dim >> totalRefs >> totalObjs >> totalQueries;
 
     ctx.nn = SEL_OBJS;
     ctx.n = SEL_REFS;
@@ -299,6 +360,11 @@ int main(int argc, char* argv[]) {
     vector<long long> msa(static_cast<size_t>(ctx.n) * static_cast<size_t>(ctx.nn));
 
     auto t1 = chrono::steady_clock::now();
+
+    // pula a secao de referencias inteira (total do arquivo, nao apenas as
+    // selecionadas), para que os objetos comecem sempre na mesma posicao do
+    // arquivo, independente de SEL_REFS
+    skipTokens(in2, static_cast<long long>(totalRefs) * ctx.dim);
 
     vector<double> oi(ctx.dim);
 
@@ -322,10 +388,10 @@ int main(int argc, char* argv[]) {
         << chrono::duration_cast<chrono::milliseconds>(t2 - t1).count()
         << " ms" << endl;
 
-    for (size_t i = 0; i < r.size(); i++) {
-
-        in2 >> tmp;
-    }
+    // pula o restante da secao de objetos que nao foi lido, para que as
+    // queries comecem sempre na mesma posicao do arquivo, independente de
+    // SEL_OBJS e SEL_REFS
+    skipTokens(in2, static_cast<long long>(totalObjs - ctx.nn) * ctx.dim);
 
     // =====================================================
     // SEARCH

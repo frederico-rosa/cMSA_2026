@@ -105,6 +105,59 @@ int getPosition(int ref, const vector<int>& loi) {
 
 // =========================================================
 
+// Pula "count" tokens (separados por espaco/quebra de linha) do stream sem
+// converter cada um para double. O operator>> usado no resto do arquivo
+// faz parsing numerico a cada leitura, o que fica proibitivamente lento
+// quando ha bilhoes de tokens a descartar (ex.: selecionar poucos objetos
+// de um arquivo com dezenas de milhoes deles).
+void skipTokens(ifstream& in, long long count) {
+
+    if (count <= 0)
+        return;
+
+    const size_t BUF_SIZE = 1 << 20;
+    vector<char> buf(BUF_SIZE);
+
+    long long skipped = 0;
+    bool inToken = false;
+
+    while (skipped < count && in) {
+
+        in.read(buf.data(), BUF_SIZE);
+        streamsize got = in.gcount();
+
+        if (got == 0)
+            break;
+
+        for (streamsize k = 0; k < got; k++) {
+
+            char c = buf[k];
+
+            if (c == ' ' || c == '\n' || c == '\r' || c == '\t') {
+
+                if (inToken) {
+
+                    inToken = false;
+                    skipped++;
+
+                    if (skipped == count) {
+
+                        in.clear();
+                        in.seekg(-(got - k - 1), ios::cur);
+                        return;
+                    }
+                }
+
+            } else {
+
+                inToken = true;
+            }
+        }
+    }
+}
+
+// =========================================================
+
 vector<int> getOrderedList(const Context& ctx, const vector<double>& oi, const vector<double>& r) {
 
     vector<Node> loi;
@@ -269,8 +322,6 @@ int main(int argc, char* argv[]) {
 
     vector<double> r(ctx.dim * ctx.n);
 
-    double tmp;
-
     // le apenas as primeiras SEL_REFS referencias do inicio da secao
     for (int i = 0; i < (int)r.size(); i++) {
 
@@ -279,9 +330,7 @@ int main(int argc, char* argv[]) {
 
     // pula a secao de objetos inteira (total do arquivo, nao apenas os selecionados),
     // para que a secao de referencias comece sempre na mesma posicao do arquivo
-    //for (long long i = 0; i < (long long)ctx.dim * totalObjs; i++) {
-    //    in >> tmp;
-    //}
+    //skipTokens(in, (long long)ctx.dim * totalObjs);
 
     printMemory("Apos referencias");
 
@@ -306,10 +355,7 @@ int main(int argc, char* argv[]) {
     // pula a secao de referencias inteira (total do arquivo, nao apenas as
     // selecionadas), para que as queries comecem sempre na mesma posicao do
     // arquivo, independente de SEL_OBJS e SEL_REFS
-    for (long long i = 0; i < (long long)totalRefs * ctx.dim; i++) {
-
-        in2 >> tmp;
-    }
+    skipTokens(in2, (long long)totalRefs * ctx.dim);
 
     vector<double> oi(ctx.dim);
 
@@ -334,10 +380,7 @@ int main(int argc, char* argv[]) {
         << " ms" << endl;
 
     // pula o restante da secao de objetos que nao foi lido
-    for (long long i = 0; i < (long long)(totalObjs - ctx.nn) * ctx.dim; i++) {
-
-        in2 >> tmp;
-    }
+    skipTokens(in2, (long long)(totalObjs - ctx.nn) * ctx.dim);
 
     // =====================================================
     // SEARCH
