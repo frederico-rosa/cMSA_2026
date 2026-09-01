@@ -21,7 +21,7 @@ using namespace std;
 // =========================================================
 // CONFIGURACOES
 // =========================================================
-static const int KNN = 100;
+static const int KNN = 10;
 
 // =========================================================
 // CONTEXT
@@ -33,7 +33,7 @@ struct Context {
     int num_q; // number of queries
 };
 
-float distance(int *o1, int *o2, int dim) {
+float distance(double *o1, double *o2, int dim) {
     float d = 0;
     #ifdef MANHATTAN
     for (int i = 0; i < dim; i++) d += fabs(o1[i] - o2[i]);
@@ -158,9 +158,9 @@ int main(int argc, char* argv[]) {
     }
 
     // read queries
-    int **queries = new int*[ctx.num_q];
+    double **queries = new double*[ctx.num_q];
     for (int i = 0; i < ctx.num_q ; i++) {
-        queries[i] = new int[ctx.dim];
+        queries[i] = new double[ctx.dim];
         for (int j = 0; j < ctx.dim; j++) { 
             in >> queries[i][j]; 
         }
@@ -195,7 +195,7 @@ int main(int argc, char* argv[]) {
 
     // read objects: for each object, consider it to be included in the result of each query
     result *results = new result[ctx.num_q];
-    int *obj = new int[ctx.dim];
+    double *obj = new double[ctx.dim];
     for (int i = 0; i < ctx.nn; i++) {
         // read 1 object
         for (int kk = 0; kk < ctx.dim; kk++) { in2 >> obj[kk]; }
